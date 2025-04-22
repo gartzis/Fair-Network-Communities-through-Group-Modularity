@@ -2,7 +2,7 @@
 
 An implementation of the The Web Conference 2025 paper "Fair Network Communities through Group Modularity"
 
-This repository implements community detection algorithms that incorporate fairness and diversity principles based on the Louvain algorithm. These algorithms aim to identify communities in graphs while considering sensitive attributes (e.g., demographic groups). The focus is on both group modularity and fairness, ensuring that the discovered communities respect edge based metrics such as the diversity, unfairness and group-modularity of different groups.
+This repository implements community detection algorithms that incorporate fairness and diversity based on the Louvain algorithm. These algorithms aim to identify communities in graphs while considering sensitive attributes (e.g., demographic groups). The focus is on both group modularity and fairness, ensuring that the discovered communities respect edge based metrics such as the diversity, unfairness and group-modularity of different groups.
 
 ### Directory Structure
 - **Algorithms/**: Contains Python implementations for the community metrics.
