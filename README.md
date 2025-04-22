@@ -43,7 +43,7 @@ The core algorithm is an extension of the Louvain algorithm, which is a widely-u
    - **Fairness-Gain**: Decrease unfairness (absolute value) between groups.
    - **Diversity-Increase**: Increase diversity.
 
-The fairness-aware Louvain algorithm operates iteratively, merging communities that both increase modularity and respect fairness criteria. Several variations focus on different measures, such as **Red/Blue Modularity** and **L-Diversity**.
+The fairness-aware Louvain algorithm operates iteratively, merging communities that both increase modularity and respect fairness criteria. These implementations focus on different measures, such as **Red/Blue Modularity** and **Diversity**, **L-Diversity**.
 
 ### Fairness Metrics
 
