@@ -87,7 +87,7 @@ The fairness-aware Louvain algorithm operates iteratively, merging communities t
     Once communities are identified, the unfairness and modularity of the communities can be computed by importing ithe relevant metric
 
     Example:
-    To compute the Unfairness and -Group Modularity metrics
+    To compute the Unfairness and Group-Modularity metrics
     ```python
     from modularityFairness import modularityFairnessMetric
     import networkx as nx
