@@ -1,3 +1,10 @@
+"""L-Red fairness Louvain community detection.
+
+Implements a Louvain-style community detection that optimizes an L-modularity
+fairness objective emphasizing the red group, while keeping standard modularity
+competitive. The procedure yields intermediate partitions across levels.
+"""
+
 import sys
 import os
 import csv
@@ -33,6 +40,19 @@ class NotAPartition(NetworkXError):
 
 
 def modularityCustom(G, communities, weight="weight", resolution=1):
+    """Compute standard modularity for a partition of G.
+
+    Utility used during Louvain passes to score candidate partitions.
+
+    Args:
+        G: NetworkX Graph/DiGraph.
+        communities: Iterable of node sets/lists representing a partition.
+        weight: Edge attribute to use as weight.
+        resolution: Resolution parameter for modularity.
+
+    Returns:
+        (total_modularity, per_community_modularity_list)
+    """
 
     if not isinstance(communities, list):
         communities = list(communities)
@@ -77,6 +97,24 @@ def modularityCustom(G, communities, weight="weight", resolution=1):
 def LRedFairness_louvain_communities(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Run the L-red fairness Louvain algorithm and return the final partition.
+
+    Initializes auxiliary attributes from binary node attributes and runs the
+    Louvain process specialized to the L-modularity fairness objective favoring
+    the red group. Returns the last partition produced.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: Random seed/RandomState.
+        node_attributes: Dict node -> {0,1}.
+
+    Returns:
+        A list of sets of nodes (communities).
+    """
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0
         G.nodes[u]['blue_weight'] = 0
@@ -131,6 +169,24 @@ def LRedFairness_louvain_communities(
 def LRedFairness_louvain_partitions(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Generate partitions across Louvain phases for L-red fairness.
+
+    Begins from singleton communities, performs node-moving passes to improve
+    the L-modularity fairness objective (favoring red) and modularity, then
+    contracts communities iteratively until improvements fall below thresholds.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: RNG seed/RandomState.
+        node_attributes: Dict node -> {0,1} attribute.
+
+    Yields:
+        Partitions (list of sets) at each stage.
+    """
     partition = [{u} for u in G.nodes()]
     
     if nx.is_empty(G):
@@ -262,11 +318,15 @@ def LRedFairness_louvain_partitions(
 
 
 def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList, m,m1,m2, partition,com2node, resolution=1, is_directed=False, seed=None, node_attributes={}):
-    """Calculate one level of the Louvain partitions tree
+    """Perform one Louvain node-moving level for L-red fairness.
 
-    Parameters
-    ----------
-    G : NetworkX Graph/DiGraph
+    Evaluates moving nodes to neighboring communities to improve a combined
+    objective of standard modularity and L-modularity fairness emphasizing the
+    red group. Updates per-community fairness contributions and the working
+    partition when an improving move is found.
+
+    Args:
+        G : NetworkX Graph/DiGraph
         The graph from which to detect communities
     m : number
         The size of the graph `G`.
@@ -279,6 +339,10 @@ def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList,
     seed : integer, random_state, or None (default)
         Indicator of random number generation state.
         See :ref:`Randomness<randomness>`.
+
+    Returns:
+        (partition, inner_partition, improvement_flag)
+    
 
     """
  

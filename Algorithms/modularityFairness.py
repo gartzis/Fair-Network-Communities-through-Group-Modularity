@@ -1,9 +1,36 @@
+"""Modularity fairness metrics.
+
+This module measures the difference between group-aware modularities inside
+communities for graphs with a binary node attribute. It exposes utilities to
+populate the auxiliary attributes and to evaluate a partition.
+"""
+
 import networkx as nx
 import pandas as pd
 
 
 
 def compute_modularityFairness(G, communities, weight="weight", resolution=1):
+    """Compute fairness signals from red/blue-aware modularities.
+
+    For each community, compute red-favoring and blue-favoring modularities by
+    counting intra-community red-only/blue-only edges (with inter edges counted
+    once for each). The null-model terms are formed using the total red/blue
+    degrees within the community. The function returns the difference
+    (modularityR - modularityB) per community, a normalized difference with
+    respect to standard modularity, and the individual red/blue modularities.
+
+    Args:
+        G: NetworkX Graph with auxiliary attributes set by
+           ``modularityFairnessMetric``.
+        communities: Iterable of node sets/lists representing a partition.
+        weight: Base edge weight attribute (default: "weight").
+        resolution: Resolution parameter for null-model terms.
+
+    Returns:
+        (sum_diff, per_comm_diff_list, per_comm_norm_diff_list,
+         per_comm_red_mod_list, per_comm_blue_mod_list)
+    """
     directed = G.is_directed()
     if directed:
         out_degree = dict(G.out_degree(weight=weight))
@@ -87,6 +114,23 @@ def compute_modularityFairness(G, communities, weight="weight", resolution=1):
 
 
 def modularityFairnessMetric(G, communities,G_attribute, weight="weight", resolution=1):
+    """Populate attributes and compute modularity fairness for a partition.
+
+    Derives edge-level indicators (r_weight, b_weight, inter_weight) and
+    per-node degree counts (red_weight, blue_weight) from the binary attribute
+    mapping. Then evaluates the partition with ``compute_modularityFairness``.
+
+    Args:
+        G: NetworkX Graph to annotate and evaluate.
+        communities: Partition as an iterable of node sets/lists.
+        G_attribute: Dict mapping node -> {0,1} group label.
+        weight: Base edge weight attribute (default: "weight").
+        resolution: Resolution parameter for the null model.
+
+    Returns:
+        (sum_diff, per_comm_diff_list, per_comm_norm_diff_list,
+         per_comm_red_mod_list, per_comm_blue_mod_list)
+    """
     
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0

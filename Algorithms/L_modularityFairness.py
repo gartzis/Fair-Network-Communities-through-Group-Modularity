@@ -1,9 +1,43 @@
+"""L-modularity fairness metrics.
+
+This module computes a fairness-aware difference between group modularities for
+partitions over graphs with a binary attribute. The L-variant separates the
+red-only, blue-only, and inter-group contributions and uses corresponding
+normalization constants to form the null-model terms. Utilities are provided to
+populate temporary weights and to evaluate a partition.
+"""
+
 import networkx as nx
 import pandas as pd
 
 
 
 def compute_LmodularityFairness(G, communities, weight="weight", resolution=1):
+    """Compute L-modularity fairness signals for a partition.
+
+    For each community, this function computes:
+      - modularityR: fairness-aware modularity favoring the red group
+      - modularityB: fairness-aware modularity favoring the blue group
+      - fairModPerc: normalized difference (modularityR - modularityB) divided
+        by the absolute standard modularity of the same community (when nonzero)
+
+    The inter-, red-only, and blue-only edge masses inside communities are
+    combined with null-model expectations that rely on corresponding degree
+    totals and L-specific normalizations.
+
+    Args:
+        G: NetworkX Graph with temporary attributes set (see
+           ``LModularityFairnessMetric``).
+        communities: Iterable of node sets/lists representing a partition of G.
+        weight: Edge attribute to use as base weight (default: "weight").
+        resolution: Resolution parameter for null-model terms.
+
+    Returns:
+        A tuple:
+        (sum_diff, per_comm_diff_list, per_comm_norm_diff_list,
+         per_comm_red_mod_list, per_comm_blue_mod_list)
+        where ``sum_diff = sum(modularityR - modularityB)`` over communities.
+    """
     directed = G.is_directed()
     if directed:
         out_degree = dict(G.out_degree(weight=weight))
@@ -112,6 +146,24 @@ def compute_LmodularityFairness(G, communities, weight="weight", resolution=1):
 
 
 def LModularityFairnessMetric(G, communities,G_attribute, weight="weight", resolution=1):
+    """Populate L-attributes and evaluate L-modularity fairness for a partition.
+
+    Initializes per-node counts for red/blue/inter incidences and per-edge
+    indicators for red-only, blue-only, and inter-group connections using the
+    provided binary node attribute mapping. It then calls
+    ``compute_LmodularityFairness`` to compute fairness-aware signals.
+
+    Args:
+        G: NetworkX Graph to annotate and evaluate.
+        communities: Partition of nodes as an iterable of sets/lists.
+        G_attribute: Dict mapping node -> {0,1} group label.
+        weight: Edge attribute used as base weight (default: "weight").
+        resolution: Resolution parameter for the null model.
+
+    Returns:
+        (sum_diff, per_comm_diff_list, per_comm_norm_diff_list,
+         per_comm_red_mod_list, per_comm_blue_mod_list)
+    """
     
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0

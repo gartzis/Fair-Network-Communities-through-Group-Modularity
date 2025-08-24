@@ -1,5 +1,32 @@
 
+"""L-diversity fairness metrics.
+
+This module provides utilities to compute a diversity-oriented fairness score over a
+given graph partition. It assumes each node carries a binary attribute and that
+edges can be classified as intra-group or inter-group. The objective favors
+higher inter-group connectivity inside communities while penalizing the expected
+inter-group connectivity given group-degree totals.
+"""
+
 def computeDiversityFairness(G, communities, weight="weight", resolution=1):
+    """Compute the L-diversity fairness score for a partition.
+
+    For each community, this computes the internal inter-group edge mass and
+    subtracts the expected inter-group connectivity based on the total red and
+    blue node degrees present in that community. The final score is the sum over
+    communities; per-community contributions are also returned.
+
+    Args:
+        G: A NetworkX graph whose nodes have temporary attributes populated by
+            ``LDiversityFairnessMetric`` (red_weight, blue_weight, inter_weight).
+        communities: An iterable of sets/lists of node IDs representing a
+            partition of G.
+        weight: Edge attribute name to use for base weights (default: "weight").
+        resolution: Resolution parameter that scales the null-model term.
+
+    Returns:
+        A tuple of (total_diversity_score, per_community_scores).
+    """
     directed = G.is_directed()
     if directed:
         out_degree = dict(G.out_degree(weight=weight))
@@ -58,6 +85,26 @@ def computeDiversityFairness(G, communities, weight="weight", resolution=1):
 
 
 def LDiversityFairnessMetric(G, communities,G_attribute, weight="weight", resolution=1):
+    """Prepare attributes and compute L-diversity fairness for a partition.
+
+    This function derives edge- and node-level auxiliary attributes from a given
+    binary attribute mapping (0/1 for two groups). Specifically, it marks edges
+    as red-only, blue-only, or inter-group; and accumulates per-node counts for
+    red, blue, and inter-group incidences. With these attributes in place, it
+    calls ``computeDiversityFairness`` to get the overall and per-community
+    diversity fairness scores.
+
+    Args:
+        G: A NetworkX Graph with nodes present in communities.
+        communities: An iterable of sets/lists of node IDs representing a
+            partition of G.
+        G_attribute: Dict mapping node -> {0,1} group label.
+        weight: Edge attribute used as base weight (default: "weight").
+        resolution: Resolution parameter for the null model.
+
+    Returns:
+        A tuple of (total_diversity_score, per_community_scores).
+    """
     
     
 

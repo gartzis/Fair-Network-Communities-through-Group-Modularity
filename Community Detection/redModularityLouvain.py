@@ -1,3 +1,9 @@
+"""Red-fairness Louvain community detection.
+
+Implements a Louvain variant that emphasizes improvements to the red group's
+modularity while maintaining competitive overall modularity.
+"""
+
 import sys
 import os
 
@@ -36,6 +42,19 @@ class NotAPartition(NetworkXError):
 
 
 def modularityCustom(G, communities, weight="weight", resolution=1):
+    """Compute standard modularity for a partition of G.
+
+    Used during Louvain passes to evaluate partitions.
+
+    Args:
+        G: NetworkX Graph/DiGraph.
+        communities: Iterable of node sets/lists representing a partition.
+        weight: Edge attribute used as weight.
+        resolution: Modularity resolution parameter.
+
+    Returns:
+        (total_modularity, per_community_modularity_list)
+    """
 
     if not isinstance(communities, list):
         communities = list(communities)
@@ -80,6 +99,24 @@ def modularityCustom(G, communities, weight="weight", resolution=1):
 def redFairness_louvain_communities(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Run the red-fairness Louvain algorithm and return the final partition.
+
+    Sets up auxiliary attributes from binary node attributes and runs a
+    Louvain-style optimization that prioritizes the red group's modularity along
+    with standard modularity. Returns the last partition produced.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: Random seed/RandomState.
+        node_attributes: Dict node -> {0,1}.
+
+    Returns:
+        A partition as a list of sets of nodes.
+    """
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0
         G.nodes[u]['blue_weight'] = 0
@@ -126,6 +163,24 @@ def redFairness_louvain_communities(
 def redFairness_louvain_partitions(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Generate partitions during the red-fairness Louvain procedure.
+
+    Alternates between node-moving phases that optimize a red-fairness objective
+    and community aggregation, yielding partitions until improvements are below
+    thresholds.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: RNG seed/RandomState.
+        node_attributes: Dict node -> {0,1}.
+
+    Yields:
+        Partitions (list of sets) at each step.
+    """
     partition = [{u} for u in G.nodes()]
     
     if nx.is_empty(G):
@@ -250,11 +305,14 @@ def redFairness_louvain_partitions(
 
 
 def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList, m, partition,com2node, resolution=1, is_directed=False, seed=None, node_attributes={}):
-    """Calculate one level of the Louvain partitions tree
+    """One Louvain node-moving level for red-fairness optimization.
 
-    Parameters
-    ----------
-    G : NetworkX Graph/DiGraph
+    Greedily evaluates moving nodes to neighboring communities using a composite
+    objective of modularity and red-favoring fairness terms, updating the
+    partition when improvements are found.
+
+    Args:
+        G : NetworkX Graph/DiGraph
         The graph from which to detect communities
     m : number
         The size of the graph `G`.
@@ -268,6 +326,8 @@ def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList,
         Indicator of random number generation state.
         See :ref:`Randomness<randomness>`.
 
+    Returns:
+        (partition, inner_partition, improvement_flag)
     """
  
 

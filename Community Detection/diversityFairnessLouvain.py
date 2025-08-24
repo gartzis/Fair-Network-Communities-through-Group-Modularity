@@ -1,3 +1,10 @@
+"""Diversity fairness Louvain community detection.
+
+Implements a Louvain variant that focuses on inter-group connectivity (diversity)
+inside communities, trading off with standard modularity. It yields partitions
+across levels and returns the final one.
+"""
+
 import sys
 import os
 import csv
@@ -30,6 +37,19 @@ class NotAPartition(NetworkXError):
 
 
 def modularityCustom(G, communities, weight="weight", resolution=1):
+    """Compute standard modularity for a partition of G.
+
+    Utility used to score partitions during Louvain passes.
+
+    Args:
+        G: NetworkX Graph/DiGraph.
+        communities: Iterable of node sets/lists representing a partition.
+        weight: Edge attribute for weight.
+        resolution: Modularity resolution parameter.
+
+    Returns:
+        (total_modularity, per_community_modularity_list)
+    """
 
     if not isinstance(communities, list):
         communities = list(communities)
@@ -70,6 +90,24 @@ def modularityCustom(G, communities, weight="weight", resolution=1):
 def diversityFairness_louvain_communities(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Run the diversity-fairness Louvain algorithm and return a partition.
+
+    Builds auxiliary red/blue/inter attributes and executes Louvain passes that
+    prioritize a diversity fairness objective alongside standard modularity.
+    Returns the final partition.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: Random seed/RandomState.
+        node_attributes: Dict node -> {0,1} attribute.
+
+    Returns:
+        A list of sets of nodes representing communities.
+    """
     
 
     d = diversityFairness_louvain_partitions(G, weight, resolution, threshold_mod,threshold_fmod, seed, node_attributes=node_attributes)
@@ -81,6 +119,23 @@ def diversityFairness_louvain_communities(
 def diversityFairness_louvain_partitions(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Generate partitions while optimizing diversity fairness.
+
+    Performs repeated node-moving and contraction phases while the improvement in
+    objectives exceeds thresholds. Yields each intermediate partition.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute.
+        resolution: Resolution parameter.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: RNG seed/RandomState.
+        node_attributes: Dict node -> {0,1} attribute.
+
+    Yields:
+        Partitions (list of sets) at each iteration.
+    """
     partition = [{u} for u in G.nodes()]
     
     if nx.is_empty(G):
@@ -228,11 +283,13 @@ def diversityFairness_louvain_partitions(
 
 
 def _one_level(G,iterationNum,orig_mod,diversityModularityList,modList, m, partition,nodesList, resolution=1, is_directed=False, seed=None, node_attributes={}):
-    """Calculate one level of the Louvain partitions tree
+    """One Louvain node-moving level for diversity fairness.
 
-    Parameters
-    ----------
-    G : NetworkX Graph/DiGraph
+    Explores moving nodes to neighboring communities to improve modularity and
+    the diversity fairness objective (based on inter-group connectivity).
+
+    Args:
+        G : NetworkX Graph/DiGraph
         The graph from which to detect communities
     m : number
         The size of the graph `G`.
@@ -246,6 +303,8 @@ def _one_level(G,iterationNum,orig_mod,diversityModularityList,modList, m, parti
         Indicator of random number generation state.
         See :ref:`Randomness<randomness>`.
 
+    Returns:
+        (partition, inner_partition, improvement_flag)
     """
  
 

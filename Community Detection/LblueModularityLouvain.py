@@ -1,3 +1,11 @@
+"""L-Blue fairness Louvain community detection.
+
+Implements a Louvain-style community detection that optimizes an L-modularity
+fairness objective emphasizing the blue group, while keeping standard modularity
+competitive. The algorithm iteratively moves nodes to neighboring communities to
+improve the objective, then aggregates communities to build a hierarchy.
+"""
+
 import sys
 import os
 import csv
@@ -37,6 +45,20 @@ class NotAPartition(NetworkXError):
 
 
 def modularityCustom(G, communities, weight="weight", resolution=1):
+    """Compute standard modularity for a partition of G.
+
+    This is a local copy of the modularity computation used to score partitions
+    during the Louvain passes. Supports both directed and undirected graphs.
+
+    Args:
+        G: NetworkX Graph/DiGraph.
+        communities: Iterable of node sets/lists representing a partition.
+        weight: Edge attribute to use as weight.
+        resolution: Resolution parameter for modularity.
+
+    Returns:
+        (total_modularity, per_community_modularity_list)
+    """
 
     if not isinstance(communities, list):
         communities = list(communities)
@@ -81,6 +103,25 @@ def modularityCustom(G, communities, weight="weight", resolution=1):
 def LBlueFairness_louvain_communities(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Run the L-blue fairness Louvain algorithm and return the final partition.
+
+    Initializes auxiliary attributes from the given binary node attributes and
+    executes the Louvain procedure specialized to the L-modularity fairness
+    objective favoring the blue group. Returns the last partition produced by
+    the partitions generator.
+
+    Args:
+        G: NetworkX Graph to cluster.
+        weight: Edge weight attribute name.
+        resolution: Modularity resolution parameter.
+        threshold_mod: Minimum improvement in modularity to continue iterations.
+        threshold_fmod: Minimum improvement in fairness objective to continue.
+        seed: Random seed or RandomState.
+        node_attributes: Dict mapping node -> {0,1} group label.
+
+    Returns:
+        A list of sets, each set being the nodes in a community.
+    """
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0
         G.nodes[u]['blue_weight'] = 0
@@ -135,6 +176,25 @@ def LBlueFairness_louvain_communities(
 def LBlueFairness_louvain_partitions(
     G, weight="weight", resolution=1, threshold_mod=0.0000001,threshold_fmod=0.001, seed=None, node_attributes={},
 ):
+    """Generate partitions across Louvain phases for L-blue fairness.
+
+    Starts from singleton communities, performs a node-moving phase to optimize
+    the objective, then contracts communities to form a coarser graph and
+    repeats until improvement falls below thresholds. Yields each intermediate
+    partition.
+
+    Args:
+        G: Graph to cluster.
+        weight: Edge weight attribute for modularity.
+        resolution: Resolution parameter for both modularity and fairness terms.
+        threshold_mod: Modularity improvement threshold.
+        threshold_fmod: Fairness improvement threshold.
+        seed: RNG seed or RandomState.
+        node_attributes: Dict node -> {0,1} group label.
+
+    Yields:
+        A partition (list of sets) at each iteration.
+    """
     partition = [{u} for u in G.nodes()]
     
     if nx.is_empty(G):
@@ -267,11 +327,15 @@ def LBlueFairness_louvain_partitions(
 
 
 def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList, m,m2,m3, partition,com2node, resolution=1, is_directed=False, seed=None, node_attributes={}):
-    """Calculate one level of the Louvain partitions tree
+    """Perform one Louvain node-moving level for L-blue fairness.
 
-    Parameters
-    ----------
-    G : NetworkX Graph/DiGraph
+    Greedily considers moving each node to neighboring communities and applies
+    the move that best improves a combination of (standard) modularity and the
+    L-modularity fairness criterion emphasizing the blue group. Updates the
+    working partition and returns whether any improvement was made.
+
+    Args:
+        G : NetworkX Graph/DiGraph
         The graph from which to detect communities
     m : number
         The size of the graph `G`.
@@ -284,6 +348,11 @@ def _one_level(G,iterationNum,orig_mod,orig_fmod,communityModularityist,modList,
     seed : integer, random_state, or None (default)
         Indicator of random number generation state.
         See :ref:`Randomness<randomness>`.
+        node_attributes: Dict of node -> {0,1}.
+
+    Returns:
+        (partition, inner_partition, improvement_flag)
+    
 
     """
  

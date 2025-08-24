@@ -1,5 +1,30 @@
 
+"""Diversity-oriented fairness metric.
+
+This module computes a diversity fairness score for a partition that rewards
+inter-group connectivity inside communities while penalizing its expectation
+under a null model derived from group-degree totals.
+"""
+
 def computeDiversity(G, communities, weight="weight", resolution=1):
+    """Compute diversity fairness for a given partition.
+
+    For each community, compute the internal inter-group weight and subtract the
+    expected inter-group connectivity based on the total red and blue degrees in
+    the community, scaled by the resolution. Returns the total and per-community
+    list of contributions.
+
+    Args:
+        G: NetworkX Graph with temporary attributes populated by
+           ``diversityMetric`` (red_weight, blue_weight, inter_weight on nodes,
+           and r_weight/b_weight/inter_weight on edges).
+        communities: Iterable of sets/lists of nodes representing a partition.
+        weight: Base edge weight attribute (default: "weight").
+        resolution: Resolution parameter for the null model.
+
+    Returns:
+        (total_diversity_score, per_community_scores)
+    """
 
     directed = G.is_directed()
     if directed:
@@ -72,6 +97,22 @@ def computeDiversity(G, communities, weight="weight", resolution=1):
 
 
 def diversityMetric(G, communities,G_attribute, weight="weight", resolution=1):
+    """Prepare attributes and compute diversity fairness for a partition.
+
+    Using a binary attribute mapping, annotate edges as red-only, blue-only, or
+    inter-group and accumulate per-node counts of red/blue/inter incidences.
+    Then compute the diversity fairness score via ``computeDiversity``.
+
+    Args:
+        G: NetworkX Graph to annotate.
+        communities: Iterable of node sets/lists representing a partition.
+        G_attribute: Dict mapping node -> {0,1} group label.
+        weight: Base edge weight (default: "weight").
+        resolution: Resolution parameter for the null model.
+
+    Returns:
+        (total_diversity_score, per_community_scores)
+    """
     
     for u in G.nodes():
         G.nodes[u]['red_weight'] = 0
