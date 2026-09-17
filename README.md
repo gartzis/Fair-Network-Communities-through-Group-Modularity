@@ -1,4 +1,5 @@
 # Fair-Network-Communities-through-Group-Modularity
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14794611.svg)](https://doi.org/10.5281/zenodo.14794611)
 
 An implementation of the The Web Conference 2025 paper "Fair Network Communities through Group Modularity"
 
@@ -125,7 +126,21 @@ The results show that the fairness-aware algorithms significantly reduce unfairn
    - **Facebook**: Social network with gender and education attributes.
    - **Twitch**: Online gaming platform with user relationships and gender-based groups.
 
+---
+
+## Citation
+
+If you use this repository, please cite our [paper](https://dl.acm.org/doi/10.1145/3696410.3714625):
+
+```bibtex
+@inproceedings{gkartzios2025fairModularity,
+  author    = {Gkartzios, Christos and Pitoura, Evaggelia and Tsaparas, Panayiotis},
+  title     = {Fair Network Communities through Group Modularity},
+  booktitle = {Proceedings of the ACM on Web Conference 2025},
+  year      = {2025},
+  pages     = {506--517},
+  doi       = {10.1145/3696410.3714625}
+}
+```
 
 
-
-[![DOI](https://zenodo.org/badge/926196014.svg)](https://doi.org/10.5281/zenodo.14794611)
