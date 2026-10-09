@@ -1,4 +1,11 @@
 
+"""Entry point for running community detection experiments.
+
+This script loads synthetic datasets, runs multiple Louvain variants that
+optimize modularity and fairness/diversity objectives, plots the resulting
+communities, and writes per-node community assignments to CSV.
+"""
+
 import sys
 import os
 
@@ -31,6 +38,16 @@ import matplotlib.pyplot as plt
 
 
 def computeMetrics(G, communities,G_attribute):
+    """Compute and print core metrics for a given partition.
+
+    Computes standard modularity, diversity fairness, red/blue modularity
+    fairness, and their L-variants, then prints a compact summary.
+
+    Args:
+        G: NetworkX Graph.
+        communities: Iterable of node sets/lists representing a partition.
+        G_attribute: Dict mapping node -> {0,1} attribute.
+    """
     modularity = nx.algorithms.community.modularity(G, communities, weight="weight")
     diversitymodularity,diversityModularityList = diversityMetric(G, communities,G_attribute, weight="weight", resolution=1)
     unfairness,unfairnessList,unfairnessModularityPerc,redModularityList,blueModularityList = modularityFairnessMetric(G, communities,G_attribute, weight="weight", resolution=1)
@@ -46,6 +63,20 @@ def computeMetrics(G, communities,G_attribute):
     print('L-Unfairness:',lUnfairness,'\tL-Diversity:',lDiversity)
 
 def plotCommunities(G, node_attributes_dict, communities, file_name, plotName,method):
+    """Plot communities with colors by attribute and markers per community.
+
+    Draws the graph using a spring layout, colors nodes red/blue according to
+    their binary attribute, assigns a distinct marker per community, and saves
+    the figure to disk under a method-specific directory.
+
+    Args:
+        G: NetworkX Graph.
+        node_attributes_dict: Dict node -> {0,1} attribute.
+        communities: Iterable of node sets/lists representing a partition.
+        file_name: Dataset name for directory structure.
+        plotName: Base name for the saved image.
+        method: Subdirectory in which to place the image.
+    """
     # Assuming you have G, node_attributes_dict, and communities already computed from your code
 
     # List of different markers for communities
@@ -96,13 +127,13 @@ def plotCommunities(G, node_attributes_dict, communities, file_name, plotName,me
     # Display legend combining communities and attributes
     plt.legend(handles=legend_patches + [red_patch, blue_patch], loc='best')
     
-    plt.savefig('Synth Results\{}\{}\{}.png'.format(method,file_name, plotName))
+    plt.savefig(os.path.join('Synth Results', method, file_name, f'{plotName}.png'))
     plt.close()
     #plt.show()
 
 
-data_path = 'Data\Symmetric'
-data_path = 'Data\Assymetric'
+data_path = os.path.join('Data', 'Symmetric')
+data_path = os.path.join('Data', 'Assymetric')
 
 file_paths = [os.path.join(data_path, file.split('.')[0]) for file in os.listdir(data_path)]
 file_paths = list(set(file_paths))
@@ -120,6 +151,13 @@ results_df = pd.DataFrame(columns=[
 
 # Function to append results to the DataFrame
 def append_results(dataset, method, line):
+    """Append one line of results to the global results DataFrame.
+
+    Args:
+        dataset: Dataset identifier.
+        method: Name of the community detection method used.
+        line: Sequence with fields matching the results_df columns.
+    """
     global results_df
     results_df = results_df.append({
         'dataset': dataset,
@@ -147,10 +185,10 @@ if not os.path.exists('Synth Results'):
 
 
 for file_path in datasets:
-    datasetName= file_path.split('\\')[-1]
+    datasetName= os.path.basename(file_path)
     print(datasetName)
     
-    datasetRead = file_path+'\\'+datasetName
+    datasetRead = os.path.join(file_path, datasetName)
 
     
     graph = nx.read_edgelist(datasetRead+'.edgelist', nodetype=int, create_using=nx.Graph())
@@ -158,11 +196,11 @@ for file_path in datasets:
     
     nx.set_node_attributes(graph, graph_attributes, 'attribute')
     
-    if not os.path.exists('Synth Results\\RedMod Communities'):
-        os.makedirs('Synth Results\\RedMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'RedMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'RedMod Communities'))
         
-    if not os.path.exists('Synth Results\\RedMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\RedMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'RedMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'RedMod Communities', datasetName))
         
     print('---Red Modularity---')
         
@@ -181,15 +219,15 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\RedMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'RedMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
     print('\n---Blue Modularity---')
     
-    if not os.path.exists('Synth Results\\BlueMod Communities'):
-        os.makedirs('Synth Results\\BlueMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'BlueMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'BlueMod Communities'))
         
-    if not os.path.exists('Synth Results\\BlueMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\BlueMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'BlueMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'BlueMod Communities', datasetName))
         
     blue_communities = blueFairness_louvain_communities(graph, weight="weight", resolution=1,node_attributes=graph_attributes)
     
@@ -206,15 +244,15 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\BlueMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'BlueMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
     
     print('\n---L-Red Modularity---')
-    if not os.path.exists('Synth Results\\L-RedMod Communities'):
-        os.makedirs('Synth Results\\L-RedMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'L-RedMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'L-RedMod Communities'))
         
-    if not os.path.exists('Synth Results\\L-RedMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\L-RedMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'L-RedMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'L-RedMod Communities', datasetName))
         
     red_communities = LRedFairness_louvain_communities(graph, weight="weight", resolution=1,node_attributes=graph_attributes)
     
@@ -231,15 +269,15 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\L-RedMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'L-RedMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
     
     print('\n---L-Blue Modularity---')
-    if not os.path.exists('Synth Results\\L-BlueMod Communities'):
-        os.makedirs('Synth Results\\L-BlueMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'L-BlueMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'L-BlueMod Communities'))
         
-    if not os.path.exists('Synth Results\\L-BlueMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\L-BlueMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'L-BlueMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'L-BlueMod Communities', datasetName))
         
     blue_communities = LBlueFairness_louvain_communities(graph, weight="weight", resolution=1,node_attributes=graph_attributes)
     
@@ -256,15 +294,15 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\L-BlueMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'L-BlueMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
     
     print('\n---Diversity Modularity---')
-    if not os.path.exists('Synth Results\\DiversityMod Communities'):
-        os.makedirs('Synth Results\\DiversityMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'DiversityMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'DiversityMod Communities'))
         
-    if not os.path.exists('Synth Results\\DiversityMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\DiversityMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'DiversityMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'DiversityMod Communities', datasetName))
         
     diversity_communities = diversityFairness_louvain_communities(graph, weight="weight", resolution=1,node_attributes=graph_attributes)
     
@@ -281,17 +319,17 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\DiversityMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'DiversityMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
     
     
     
     print('\n---L-Diversity Modularity---')
-    if not os.path.exists('Synth Results\\L-DiversityMod Communities'):
-        os.makedirs('Synth Results\\L-DiversityMod Communities')
+    if not os.path.exists(os.path.join('Synth Results', 'L-DiversityMod Communities')):
+        os.makedirs(os.path.join('Synth Results', 'L-DiversityMod Communities'))
         
-    if not os.path.exists('Synth Results\\L-DiversityMod Communities\\'+datasetName):
-        os.makedirs('Synth Results\\L-DiversityMod Communities\\'+datasetName)
+    if not os.path.exists(os.path.join('Synth Results', 'L-DiversityMod Communities', datasetName)):
+        os.makedirs(os.path.join('Synth Results', 'L-DiversityMod Communities', datasetName))
         
     diversity_communities = Ldiversity_louvain_communities(graph, weight="weight", resolution=1,node_attributes=graph_attributes)
     
@@ -308,5 +346,5 @@ for file_path in datasets:
     
     # Write the DataFrame to a CSV file
     
-    community_df.to_csv(os.path.join('Synth Results\\L-DiversityMod Communities\\'+datasetName, datasetName + '_communities.csv'), index=False)
+    community_df.to_csv(os.path.join('Synth Results', 'L-DiversityMod Communities', datasetName, datasetName + '_communities.csv'), index=False)
     
